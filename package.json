@@ -1,0 +1,16 @@
+{
+  "name": "spotify-telegram-bot",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "node src/index.js"
+  },
+  "author": "xleepy",
+  "license": "ISC",
+  "dependencies": {
+    "dotenv": "^16.0.0",
+    "node-fetch": "^2.6.7",
+    "node-telegram-bot-api": "^0.56.0"
+  }
+}
