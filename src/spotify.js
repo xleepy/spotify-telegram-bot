@@ -27,13 +27,26 @@ async function authenticateSpotify() {
 async function init() {
   const token = await authenticateSpotify();
 
-  async function getTrackInfoByURL(url = '') {
-    const urlArr = url.split('/');
-    const [idFromUrl] = urlArr[urlArr.length - 1].split('?');
-    return makeRequest(`https://api.spotify.com/v1/tracks/${idFromUrl}`, getRequestOptions(token));
-  }
+  const createSpotifyRequest = (path) => {
+    return makeRequest(`https://api.spotify.com/v1${path}`, getRequestOptions(token));
+  };
+
+  const getPlaylistById = (id) => {
+    return createSpotifyRequest(`/playlists/${id}`);
+  };
+
+  const getAlbumInfoById = (id) => {
+    return createSpotifyRequest(`/albums/${id}`);
+  };
+
+  const getTrackInfoById = (id = '') => {
+    return createSpotifyRequest(`/tracks/${id}`);
+  };
+
   return {
-    getTrackInfoByURL,
+    getAlbumInfoById,
+    getTrackInfoById,
+    getPlaylistById,
   };
 }
 
