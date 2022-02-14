@@ -21,19 +21,15 @@ function createMessageText(...arr) {
   if (arr.length === 0) {
     return 'Not found';
   }
-  return (arr || []).join('\n');
+  return (arr || []).filter(Boolean).join('\n');
 }
 
-function createArticle(name, url, thumb) {
+function createArticle(name, thumb, messageText = '') {
   return {
     id: randomUUID(),
     type: 'article',
     input_message_content: {
-      message_text: createMessageText(
-        `*${name}*`,
-        `[Spotify](${url})`,
-        `[Youtube](https://www.youtube.com/results?search_query=${encodeURIComponent(name)})`
-      ),
+      message_text: messageText,
       parse_mode: 'Markdown',
     },
     title: name,
@@ -74,6 +70,14 @@ function createArticle(name, url, thumb) {
     const fullName =
       artists.length > 0 ? `${artists.map((a) => a.name).join(', ')}: ${name}` : name;
 
-    bot.answerInlineQuery(id, [createArticle(fullName, external_urls.spotify, thumb)]);
+    const messageText = createMessageText(
+      `*${name}*`,
+      `[Spotify](${external_urls.spotify})`,
+      type != 'playlist'
+        ? `[Youtube](https://www.youtube.com/results?search_query=${encodeURIComponent(name)})`
+        : null
+    );
+
+    bot.answerInlineQuery(id, [createArticle(fullName, thumb, messageText)]);
   });
 })();
