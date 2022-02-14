@@ -71,10 +71,10 @@ function createArticle(name, thumb, messageText = '') {
       artists.length > 0 ? `${artists.map((a) => a.name).join(', ')}: ${name}` : name;
 
     const messageText = createMessageText(
-      `*${name}*`,
+      `*${fullName}*`,
       `[Spotify](${external_urls.spotify})`,
       type != 'playlist'
-        ? `[Youtube](https://www.youtube.com/results?search_query=${encodeURIComponent(name)})`
+        ? `[Youtube](https://www.youtube.com/results?search_query=${encodeURIComponent(fullName)})`
         : null
     );
 
