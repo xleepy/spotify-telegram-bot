@@ -9,8 +9,9 @@ function parseQuery(query = '') {
   if (urlArr.length == 0) {
     return null;
   }
-  const type = urlArr.at(-2);
-  const [id] = urlArr.at(-1).split('?');
+  // node 16.1.0 on windows doesn't support at function
+  const type = urlArr[urlArr.length - 2];
+  const [id] = urlArr[urlArr.length - 1].split('?');
   return {
     id,
     type,
@@ -24,7 +25,7 @@ function createMessageText(...arr) {
   return (arr || []).filter(Boolean).join('\n');
 }
 
-function createArticle(name, thumb, messageText = '') {
+function createArticle(url, name, thumb, messageText = '') {
   return {
     id: randomUUID(),
     type: 'article',
@@ -33,10 +34,33 @@ function createArticle(name, thumb, messageText = '') {
       parse_mode: 'Markdown',
     },
     title: name,
+    url: url,
+    hide_url: true,
     thumb_url: thumb?.url,
-    thumb_height: thumb?.height,
-    thumb_width: thumb?.width,
+    thumb_height: thumb?.height ?? 200,
+    thumb_width: thumb?.width ?? 200,
   };
+}
+
+function makeArticleByType(type, data) {
+  const url = data.external_urls.spotify;
+  if (type === 'playlist') {
+    const { name, images = [] } = data;
+    return createArticle(url, name, images[0], createMessageText(`*${name}*`, `[Spotify](${url})`));
+  }
+  const { name, images = [], artists = [], album } = data;
+  const image = type === 'track' ? album.images[0] : images[0];
+  const fullName = artists.length > 0 ? `${artists.map(a => a.name).join(', ')}: ${name}` : name;
+  return createArticle(
+    url,
+    fullName,
+    image,
+    createMessageText(
+      `*${fullName}*`,
+      `[Spotify](${url})`,
+      `[Youtube](https://www.youtube.com/results?search_query=${encodeURIComponent(fullName)})`
+    )
+  );
 }
 
 (async () => {
@@ -49,9 +73,7 @@ function createArticle(name, thumb, messageText = '') {
     if (query.length == 0) {
       return;
     }
-
     const { id: spotifyId, type } = parseQuery(query);
-
     const getInfo = () => {
       switch (type) {
         case 'track':
@@ -62,22 +84,7 @@ function createArticle(name, thumb, messageText = '') {
           return getPlaylistById(spotifyId);
       }
     };
-
-    const { name, images = [], external_urls, artists = [], album } = await getInfo();
-
-    const thumb = type == 'track' ? album.images[0] : images[0];
-
-    const fullName =
-      artists.length > 0 ? `${artists.map((a) => a.name).join(', ')}: ${name}` : name;
-
-    const messageText = createMessageText(
-      `*${fullName}*`,
-      `[Spotify](${external_urls.spotify})`,
-      type != 'playlist'
-        ? `[Youtube](https://www.youtube.com/results?search_query=${encodeURIComponent(fullName)})`
-        : null
-    );
-
-    bot.answerInlineQuery(id, [createArticle(fullName, thumb, messageText)]);
+    const data = await getInfo();
+    bot.answerInlineQuery(id, [makeArticleByType(type, data)]);
   });
 })();
