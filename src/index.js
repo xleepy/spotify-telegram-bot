@@ -31,7 +31,7 @@ function createArticle(url, name, thumb, messageText = '') {
     type: 'article',
     input_message_content: {
       message_text: messageText,
-      parse_mode: 'Markdown',
+      parse_mode: 'HTML',
     },
     title: name,
     url: url,
@@ -51,14 +51,16 @@ function makeArticleByType(type, data) {
   const { name, images = [], artists = [], album } = data;
   const image = type === 'track' ? album.images[0] : images[0];
   const fullName = artists.length > 0 ? `${artists.map(a => a.name).join(', ')}: ${name}` : name;
+  const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(fullName)}`;
   return createArticle(
     url,
     fullName,
     image,
     createMessageText(
-      `*${fullName}*`,
-      `[Spotify](${url})`,
-      `[Youtube](https://www.youtube.com/results?search_query=${encodeURIComponent(fullName)})`
+      `<b>${fullName}</b>`,
+      `<a href="${url}">Spotify</a>`,
+      `<a href="${youtubeUrl}">Youtube</a>`,
+      `<a href="${image.url}">&#8288</a>`
     )
   );
 }
