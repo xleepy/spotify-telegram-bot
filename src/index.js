@@ -1,12 +1,12 @@
 require('dotenv').config();
-const spotify = require('./spotify');
 const { randomUUID } = require('crypto');
 
 const TelegramBot = require('node-telegram-bot-api');
+const spotify = require('./spotify');
 
 function parseQuery(query = '') {
   const urlArr = query.split('/');
-  if (urlArr.length == 0) {
+  if (urlArr.length === 0) {
     return null;
   }
   // node 16.1.0 on windows doesn't support at function
@@ -34,7 +34,7 @@ function createArticle(url, name, thumb, messageText = '') {
       parse_mode: 'HTML',
     },
     title: name,
-    url: url,
+    url,
     hide_url: true,
     thumb_url: thumb?.url,
     thumb_height: thumb?.height ?? 200,
@@ -72,10 +72,14 @@ function makeArticleByType(type, data) {
   });
 
   bot.on('inline_query', async ({ query, id }) => {
-    if (query.length == 0) {
+    if (query.length === 0) {
       return;
     }
-    const { id: spotifyId, type } = parseQuery(query);
+    const parsedQuery = parseQuery(query);
+    if (!parsedQuery) {
+      return;
+    }
+    const { id: spotifyId, type } = parsedQuery;
     const getInfo = () => {
       switch (type) {
         case 'track':
@@ -84,6 +88,8 @@ function makeArticleByType(type, data) {
           return getAlbumInfoById(spotifyId);
         case 'playlist':
           return getPlaylistById(spotifyId);
+        default:
+          return null;
       }
     };
     const data = await getInfo();
