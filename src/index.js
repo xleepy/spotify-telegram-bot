@@ -106,6 +106,9 @@ function makeArticleByType(type, data) {
     };
     try {
       const data = await getInfo();
+      if (!data) {
+        return;
+      }
       await bot.answerInlineQuery(id, [makeArticleByType(type, data)]);
     } catch (err) {
       console.error(err);
