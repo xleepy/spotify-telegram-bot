@@ -43,7 +43,11 @@ function createArticle(url, name, thumb, messageText = "") {
 }
 
 function makeArticleByType(type, data) {
-  const url = data.external_urls.spotify;
+  const url = data?.external_urls?.spotify;
+  if (!url) {
+    console.log("url not found for", type, data);
+    return null;
+  }
   if (type === "playlist") {
     const { name, images = [] } = data;
     return createArticle(
@@ -109,7 +113,11 @@ function makeArticleByType(type, data) {
       if (!data) {
         return;
       }
-      await bot.answerInlineQuery(id, [makeArticleByType(type, data)]);
+      const article = makeArticleByType(type, data);
+      if (!article) {
+        return;
+      }
+      await bot.answerInlineQuery(id, [article]);
     } catch (err) {
       console.error(err);
     }
