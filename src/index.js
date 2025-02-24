@@ -83,7 +83,8 @@ function makeArticleByType(type, data) {
   });
 
   bot.on("inline_query", async ({ query, id }) => {
-    if (query.length === 0) {
+    const isSpotifyURL = query.includes("open.spotify.com");
+    if (query.length === 0 || !isSpotifyURL) {
       return;
     }
     const parsedQuery = parseQuery(query);
