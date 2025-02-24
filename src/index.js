@@ -3,6 +3,7 @@ const { randomUUID } = require("crypto");
 
 const TelegramBot = require("node-telegram-bot-api");
 const spotify = require("./spotify");
+const { debounce } = require("./utils");
 
 function parseQuery(query = "") {
   const urlArr = query.split("/");
@@ -86,7 +87,7 @@ function makeArticleByType(type, data) {
     polling: true,
   });
 
-  bot.on("inline_query", async ({ query, id }) => {
+  const debouncedSearch = debounce(async ({ query, id }) => {
     const isSpotifyURL = query.includes("open.spotify.com");
     if (query.length === 0 || !isSpotifyURL) {
       return;
@@ -121,5 +122,7 @@ function makeArticleByType(type, data) {
     } catch (err) {
       console.error(err);
     }
-  });
+  }, 500);
+
+  bot.on("inline_query", debouncedSearch);
 })();
