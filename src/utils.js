@@ -22,6 +22,7 @@ async function makeRequest(url, opts) {
     error.response = response;
     error.responseText = text;
   }
+  error.status = status;
   return error;
 }
 
