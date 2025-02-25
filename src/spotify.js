@@ -1,38 +1,61 @@
-const { makeRequest } = require('./utils');
+const { makeRequest } = require("./utils");
 
 const authOptions = {
-  method: 'POST',
+  method: "POST",
   headers: {
-    'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
+    "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
     Authorization: `Basic ${Buffer.from(
       `${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`
-    ).toString('base64')}`,
+    ).toString("base64")}`,
   },
-  body: 'grant_type=client_credentials',
+  body: "grant_type=client_credentials",
 };
 
-const getRequestOptions = token => ({
+const getRequestOptions = (token) => ({
   headers: {
     Authorization: `Bearer ${token}`,
   },
 });
 
+let token = null;
+
 async function authenticateSpotify() {
-  const { access_token } = await makeRequest('https://accounts.spotify.com/api/token', authOptions);
+  const { access_token } = await makeRequest(
+    "https://accounts.spotify.com/api/token",
+    authOptions
+  );
   return access_token;
 }
 
+const fetchWithReauth = async (url, opts) => {
+  if (!token) {
+    token = await authenticateSpotify();
+  }
+  const response = await makeRequest(url, {
+    ...opts,
+    headers: { ...opts.headers, Authorization: `Bearer ${token}` },
+  });
+  if (response.status === 401) {
+    token = await authenticateSpotify();
+    return makeRequest(url, {
+      ...opts,
+      headers: { ...opts.headers, Authorization: `Bearer ${token}` },
+    });
+  }
+  return response;
+};
+
 async function init() {
-  const token = await authenticateSpotify();
+  token = await authenticateSpotify();
 
-  const createSpotifyRequest = path =>
-    makeRequest(`https://api.spotify.com/v1${path}`, getRequestOptions(token));
+  const createSpotifyRequest = (path) =>
+    fetchWithReauth(`https://api.spotify.com/v1${path}`);
 
-  const getPlaylistById = id => createSpotifyRequest(`/playlists/${id}`);
+  const getPlaylistById = (id) => createSpotifyRequest(`/playlists/${id}`);
 
-  const getAlbumInfoById = id => createSpotifyRequest(`/albums/${id}`);
+  const getAlbumInfoById = (id) => createSpotifyRequest(`/albums/${id}`);
 
-  const getTrackInfoById = (id = '') => createSpotifyRequest(`/tracks/${id}`);
+  const getTrackInfoById = (id = "") => createSpotifyRequest(`/tracks/${id}`);
 
   return {
     getAlbumInfoById,
