@@ -1,6 +1,4 @@
-const fetch = require("node-fetch");
-
-async function makeRequest(url, opts) {
+export async function makeRequest(url: string, opts: RequestInit) {
   const response = await fetch(url, opts);
   if (response.ok) {
     return response.json();
@@ -9,7 +7,7 @@ async function makeRequest(url, opts) {
 
   const { statusText, status } = response;
 
-  let error;
+  let error: any;
 
   try {
     const json = JSON.parse(text);
@@ -27,20 +25,20 @@ async function makeRequest(url, opts) {
 }
 
 // https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore?tab=readme-ov-file#_debounce
-function debounce(func, wait, immediate) {
-  let timeout;
-  return function (...args) {
-    const context = this;
-    clearTimeout(timeout);
-    if (immediate && !timeout) func.apply(context, args);
+export function debounce<T extends (...args: any) => void>(
+  func: T,
+  wait: number,
+  immediate?: true
+) {
+  let timeout: NodeJS.Timeout | null;
+  return function (this: ThisParameterType<T>, ...args: any[]) {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+    if (immediate && !timeout) func.apply(this, args);
     timeout = setTimeout(() => {
       timeout = null;
-      if (!immediate) func.apply(context, args);
+      if (!immediate) func.apply(this, args);
     }, wait);
   };
 }
-
-module.exports = {
-  makeRequest,
-  debounce,
-};
