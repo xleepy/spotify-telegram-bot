@@ -10,15 +10,18 @@
   "author": "xleepy",
   "license": "ISC",
   "dependencies": {
-    "dotenv": "^16.0.0",
-    "node-telegram-bot-api": "^0.56.0"
+    "dotenv": "^17.2.0",
+    "node-telegram-bot-api": "^0.66.0"
   },
   "devDependencies": {
     "@types/node": "^22.13.5",
-    "@types/node-telegram-bot-api": "^0.64.7",
-    "eslint": "^8.9.0",
+    "@types/node-telegram-bot-api": "^0.64.9",
+    "eslint": "^9.31.0",
     "eslint-config-airbnb-base": "^15.0.0",
-    "eslint-plugin-import": "^2.25.4",
-    "typescript": "^5.7.3"
+    "eslint-plugin-import": "^2.32.0",
+    "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "eslint": "$eslint"
   }
 }
