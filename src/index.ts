@@ -37,27 +37,26 @@ function createArticle(
   name: string,
   thumb?: Thumbnail,
   messageText = ''
-): TelegramBot.InlineQueryResult {
+): any {
   return {
     id: randomUUID(),
-    type: 'article',
-    input_message_content: {
-      message_text: messageText,
-      parse_mode: 'HTML',
-    },
+    type: 'photo',
+    photo_url: thumb?.url || '',
+    thumbnail_url: thumb?.url || '',
+    photo_width: thumb?.width || 100,
+    photo_height: thumb?.height || 100,
     title: name,
-    url,
-    hide_url: true,
-    thumb_url: thumb?.url,
-    thumb_height: thumb?.height ?? 200,
-    thumb_width: thumb?.width ?? 200,
+    description: name,
+    caption: messageText,
+    parse_mode: 'HTML',
+    show_caption_above_media: true,
   };
 }
 
 function makeArticleByType(
   type: string,
   data: any // todo fix spotify types
-): TelegramBot.InlineQueryResult | null {
+): TelegramBot.InlineQueryResultPhoto | null {
   const url = data?.external_urls?.spotify;
   if (!url) {
     console.log('url not found for', type, data);
@@ -88,8 +87,7 @@ function makeArticleByType(
     createMessageText(
       `<b>${fullName}</b>`,
       `<a href="${url}">Spotify</a>`,
-      `<a href="${youtubeUrl}">Youtube</a>`,
-      `<a href="${image.url}">&#8288</a>`
+      `<a href="${youtubeUrl}">Youtube</a>`
     )
   );
 }
