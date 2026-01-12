@@ -4,6 +4,8 @@ import spotify from './spotify';
 import { debounce } from './utils';
 import { randomUUID } from 'crypto';
 import TelegramBot from 'node-telegram-bot-api';
+import fs from 'fs/promises';
+import ytdlp from 'yt-dlp-exec';
 
 function parseQuery(query = '') {
   const urlArr = query.split('/');
@@ -105,6 +107,39 @@ function makeArticleByType(
 
   const debouncedSearch = debounce(async ({ query, id }) => {
     const isSpotifyURL = query.includes('open.spotify.com');
+    const isTwitterURL =
+      query.includes('twitter.com') || query.includes('x.com');
+    if (isTwitterURL) {
+      try {
+        // Get video info and direct URL
+        const info = await ytdlp(query, {
+          dumpSingleJson: true,
+          format: 'best[ext=mp4]/best',
+        });
+
+        // Find the best video URL
+        const videoUrl = info.url;
+        const thumbnail = info.thumbnail || '';
+        const title = info.title || 'Twitter Video';
+
+        if (videoUrl) {
+          await bot.answerInlineQuery(id, [
+            {
+              type: 'video',
+              id: randomUUID(),
+              video_url: videoUrl,
+              mime_type: 'video/mp4',
+              thumb_url: thumbnail,
+              title: title,
+              caption: title,
+            },
+          ]);
+        }
+      } catch (err) {
+        console.error('yt-dlp error:', err);
+      }
+      return;
+    }
     if (query.length === 0 || !isSpotifyURL) {
       return;
     }
