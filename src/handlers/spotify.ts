@@ -35,10 +35,16 @@ interface SpotifyPlaylistData {
   external_urls: { spotify: string };
 }
 
-// The @types package is missing parse_mode and show_caption_above_media on InlineQueryResultPhoto
-type PhotoResult = TelegramBot.InlineQueryResultPhoto & {
-  parse_mode?: TelegramBot.ParseMode;
-  show_caption_above_media?: boolean;
+// link_preview_options was added in Bot API 7.0 and is missing from @types
+type ArticleResult = TelegramBot.InlineQueryResultArticle & {
+  input_message_content: TelegramBot.InputTextMessageContent & {
+    link_preview_options?: {
+      is_disabled?: boolean;
+      url?: string;
+      prefer_large_media?: boolean;
+      show_above_text?: boolean;
+    };
+  };
 };
 
 function parseQuery(query: string): { id: string; type: string } | null {
@@ -64,23 +70,28 @@ function createArticle(
   name: string,
   thumb: SpotifyImage | undefined,
   messageText: string,
-): PhotoResult {
+  previewUrl: string,
+): ArticleResult {
   return {
     id: randomUUID(),
-    type: 'photo',
-    photo_url: thumb?.url ?? '',
-    thumb_url: thumb?.url ?? '',
-    photo_width: thumb?.width ?? 100,
-    photo_height: thumb?.height ?? 100,
+    type: 'article',
     title: name,
     description: name,
-    caption: messageText,
-    parse_mode: 'HTML',
-    show_caption_above_media: true,
+    thumb_url: thumb?.url,
+    thumb_width: thumb?.width,
+    thumb_height: thumb?.height,
+    input_message_content: {
+      message_text: messageText,
+      parse_mode: 'HTML',
+      link_preview_options: {
+        url: previewUrl,
+        prefer_large_media: true,
+      },
+    },
   };
 }
 
-function makeTrackArticle(data: SpotifyTrackData): PhotoResult {
+function makeTrackArticle(data: SpotifyTrackData): ArticleResult {
   const url = data.external_urls.spotify;
   const fullName = data.artists.length > 0
     ? `${data.artists.map((a) => a.name).join(', ')}: ${data.name}`
@@ -94,10 +105,11 @@ function makeTrackArticle(data: SpotifyTrackData): PhotoResult {
       `<a href="${url}">Spotify</a>`,
       `<a href="${youtubeUrl}">Youtube</a>`,
     ),
+    url,
   );
 }
 
-function makeAlbumArticle(data: SpotifyAlbumData): PhotoResult {
+function makeAlbumArticle(data: SpotifyAlbumData): ArticleResult {
   const url = data.external_urls.spotify;
   const fullName = data.artists.length > 0
     ? `${data.artists.map((a) => a.name).join(', ')}: ${data.name}`
@@ -111,15 +123,17 @@ function makeAlbumArticle(data: SpotifyAlbumData): PhotoResult {
       `<a href="${url}">Spotify</a>`,
       `<a href="${youtubeUrl}">Youtube</a>`,
     ),
+    url,
   );
 }
 
-function makePlaylistArticle(data: SpotifyPlaylistData): PhotoResult {
+function makePlaylistArticle(data: SpotifyPlaylistData): ArticleResult {
   const url = data.external_urls.spotify;
   return createArticle(
     data.name,
     data.images[0],
     createMessageText(`<b>${escapeHtml(data.name)}</b>`, `<a href="${url}">Spotify</a>`),
+    url,
   );
 }
 
@@ -135,7 +149,7 @@ export function createHandler(client: SpotifyClient) {
       const { id: spotifyId, type } = parsed;
 
       try {
-        let article: PhotoResult | null = null;
+        let article: ArticleResult | null = null;
 
         if (type === 'track') {
           const data = await getTrackInfoById(spotifyId) as SpotifyTrackData;
