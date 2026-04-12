@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "postinstall": "node scripts/update-ytdlp.js",
     "start": "node dist/index.js",
     "build": "tsc"
   },

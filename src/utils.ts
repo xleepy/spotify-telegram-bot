@@ -24,6 +24,39 @@ export async function makeRequest(url: string, opts: RequestInit) {
   return error;
 }
 
+interface VideoFormat {
+  url: string;
+  vcodec: string;
+  acodec: string;
+  ext: string;
+  height: number;
+}
+
+export interface VideoInfo {
+  url?: string;
+  formats?: VideoFormat[];
+}
+
+export function getBestVideoUrl(info: VideoInfo): string | null {
+  if (info.url) {
+    return info.url;
+  }
+  const formats = info.formats ?? [];
+  const combined = formats.filter(
+    (f) => f.url && f.vcodec !== 'none' && f.acodec !== 'none',
+  );
+  if (combined.length > 0) {
+    combined.sort((a, b) => {
+      const aIsMp4 = a.ext === 'mp4' ? 1 : 0;
+      const bIsMp4 = b.ext === 'mp4' ? 1 : 0;
+      if (aIsMp4 !== bIsMp4) return bIsMp4 - aIsMp4;
+      return b.height - a.height;
+    });
+    return combined[0].url;
+  }
+  return formats.find((f) => f.url && f.vcodec !== 'none')?.url ?? null;
+}
+
 // https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore?tab=readme-ov-file#_debounce
 export function debounce<T extends (...args: any) => void>(
   func: T,

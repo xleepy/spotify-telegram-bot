@@ -1,177 +1,31 @@
 import dotenv from 'dotenv';
 dotenv.config();
-import spotify from './spotify';
-import { debounce } from './utils';
-import { randomUUID } from 'crypto';
 import TelegramBot from 'node-telegram-bot-api';
-import fs from 'fs/promises';
-import ytdlp from 'yt-dlp-exec';
-
-function parseQuery(query = '') {
-  const urlArr = query.split('/');
-  if (urlArr.length === 0) {
-    return null;
-  }
-  // node 16.1.0 on windows doesn't support at function
-  const type = urlArr[urlArr.length - 2];
-  const [id] = urlArr[urlArr.length - 1].split('?');
-  return {
-    id,
-    type,
-  };
-}
-
-function createMessageText(...arr: string[]) {
-  if (arr.length === 0) {
-    return 'Not found';
-  }
-  return (arr || []).filter(Boolean).join('\n');
-}
-
-type Thumbnail = {
-  url: string;
-  height: number;
-  width: number;
-};
-
-function createArticle(
-  url: string,
-  name: string,
-  thumb?: Thumbnail,
-  messageText = ''
-): any {
-  return {
-    id: randomUUID(),
-    type: 'photo',
-    photo_url: thumb?.url || '',
-    thumbnail_url: thumb?.url || '',
-    photo_width: thumb?.width || 100,
-    photo_height: thumb?.height || 100,
-    title: name,
-    description: name,
-    caption: messageText,
-    parse_mode: 'HTML',
-    show_caption_above_media: true,
-  };
-}
-
-function makeArticleByType(
-  type: string,
-  data: any // todo fix spotify types
-): TelegramBot.InlineQueryResultPhoto | null {
-  const url = data?.external_urls?.spotify;
-  if (!url) {
-    console.log('url not found for', type, data);
-    return null;
-  }
-  if (type === 'playlist') {
-    const { name, images = [] } = data;
-    return createArticle(
-      url,
-      name,
-      images[0],
-      createMessageText(`*${name}*`, `[Spotify](${url})`)
-    );
-  }
-  const { name, images = [], artists = [], album } = data;
-  const image = type === 'track' ? album.images[0] : images[0];
-  const fullName =
-    artists.length > 0
-      ? `${artists.map((a: any) => a.name).join(', ')}: ${name}`
-      : name;
-  const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(
-    fullName
-  )}`;
-  return createArticle(
-    url,
-    fullName,
-    image,
-    createMessageText(
-      `<b>${fullName}</b>`,
-      `<a href="${url}">Spotify</a>`,
-      `<a href="${youtubeUrl}">Youtube</a>`
-    )
-  );
-}
+import spotifyInit from './spotify';
+import { debounce } from './utils';
+import { createHandler as createSpotifyHandler } from './handlers/spotify';
+import { handler as twitterHandler } from './handlers/twitter';
+import { handler as instagramHandler } from './handlers/instagram';
 
 (async () => {
-  const { getTrackInfoById, getAlbumInfoById, getPlaylistById } =
-    await spotify();
+  const spotifyClient = await spotifyInit();
+
   const tgApiToken = process.env.API_TOKEN;
   if (!tgApiToken) {
     throw new Error('API_TOKEN is missing');
   }
-  const bot = new TelegramBot(tgApiToken, {
-    polling: true,
-  });
+  const bot = new TelegramBot(tgApiToken, { polling: true });
 
-  const debouncedSearch = debounce(async ({ query, id }) => {
-    const isSpotifyURL = query.includes('open.spotify.com');
-    const isTwitterURL =
-      query.includes('twitter.com') || query.includes('x.com');
-    if (isTwitterURL) {
-      try {
-        // Get video info and direct URL
-        const info = await ytdlp(query, {
-          dumpSingleJson: true,
-          format: 'best[ext=mp4]/best',
-        });
+  const handlers = [
+    createSpotifyHandler(spotifyClient),
+    twitterHandler,
+    instagramHandler,
+  ];
 
-        // Find the best video URL
-        const videoUrl = info.url;
-        const thumbnail = info.thumbnail || '';
-        const title = info.title || 'Twitter Video';
-
-        if (videoUrl) {
-          await bot.answerInlineQuery(id, [
-            {
-              type: 'video',
-              id: randomUUID(),
-              video_url: videoUrl,
-              mime_type: 'video/mp4',
-              thumb_url: thumbnail,
-              title: title,
-              caption: title,
-            },
-          ]);
-        }
-      } catch (err) {
-        console.error('yt-dlp error:', err);
-      }
-      return;
-    }
-    if (query.length === 0 || !isSpotifyURL) {
-      return;
-    }
-    const parsedQuery = parseQuery(query);
-    if (!parsedQuery) {
-      return;
-    }
-    const { id: spotifyId, type } = parsedQuery;
-    const getInfo = () => {
-      switch (type) {
-        case 'track':
-          return getTrackInfoById(spotifyId);
-        case 'album':
-          return getAlbumInfoById(spotifyId);
-        case 'playlist':
-          return getPlaylistById(spotifyId);
-        default:
-          return null;
-      }
-    };
-    try {
-      const data = await getInfo();
-      if (!data) {
-        return;
-      }
-      const article = makeArticleByType(type, data);
-      if (!article) {
-        return;
-      }
-      await bot.answerInlineQuery(id, [article]);
-    } catch (err) {
-      console.error(err);
+  const debouncedSearch = debounce(async ({ query, id }: { query: string; id: string }) => {
+    const handler = handlers.find((h) => h.matches(query));
+    if (handler) {
+      await handler.handle(query, id, bot);
     }
   }, 500);
 
