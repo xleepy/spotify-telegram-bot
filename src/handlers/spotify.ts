@@ -49,6 +49,13 @@ function parseQuery(query: string): { id: string; type: string } | null {
   return { id, type };
 }
 
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 function createMessageText(...parts: string[]): string {
   return parts.filter(Boolean).join('\n');
 }
@@ -83,7 +90,7 @@ function makeTrackArticle(data: SpotifyTrackData): PhotoResult {
     fullName,
     data.album.images[0],
     createMessageText(
-      `<b>${fullName}</b>`,
+      `<b>${escapeHtml(fullName)}</b>`,
       `<a href="${url}">Spotify</a>`,
       `<a href="${youtubeUrl}">Youtube</a>`,
     ),
@@ -100,7 +107,7 @@ function makeAlbumArticle(data: SpotifyAlbumData): PhotoResult {
     fullName,
     data.images[0],
     createMessageText(
-      `<b>${fullName}</b>`,
+      `<b>${escapeHtml(fullName)}</b>`,
       `<a href="${url}">Spotify</a>`,
       `<a href="${youtubeUrl}">Youtube</a>`,
     ),
@@ -112,7 +119,7 @@ function makePlaylistArticle(data: SpotifyPlaylistData): PhotoResult {
   return createArticle(
     data.name,
     data.images[0],
-    createMessageText(`*${data.name}*`, `[Spotify](${url})`),
+    createMessageText(`<b>${escapeHtml(data.name)}</b>`, `<a href="${url}">Spotify</a>`),
   );
 }
 
