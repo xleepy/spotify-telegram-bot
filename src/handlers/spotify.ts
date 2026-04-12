@@ -1,6 +1,6 @@
 import { randomUUID } from 'crypto';
 import TelegramBot from 'node-telegram-bot-api';
-import spotifyInit from '../spotify';
+import spotifyInit from '../api/spotify';
 
 type SpotifyClient = Awaited<ReturnType<typeof spotifyInit>>;
 
@@ -93,9 +93,10 @@ function createArticle(
 
 function makeTrackArticle(data: SpotifyTrackData): ArticleResult {
   const url = data.external_urls.spotify;
-  const fullName = data.artists.length > 0
-    ? `${data.artists.map((a) => a.name).join(', ')}: ${data.name}`
-    : data.name;
+  const fullName =
+    data.artists.length > 0
+      ? `${data.artists.map((a) => a.name).join(', ')}: ${data.name}`
+      : data.name;
   const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(fullName)}`;
   return createArticle(
     fullName,
@@ -111,9 +112,10 @@ function makeTrackArticle(data: SpotifyTrackData): ArticleResult {
 
 function makeAlbumArticle(data: SpotifyAlbumData): ArticleResult {
   const url = data.external_urls.spotify;
-  const fullName = data.artists.length > 0
-    ? `${data.artists.map((a) => a.name).join(', ')}: ${data.name}`
-    : data.name;
+  const fullName =
+    data.artists.length > 0
+      ? `${data.artists.map((a) => a.name).join(', ')}: ${data.name}`
+      : data.name;
   const youtubeUrl = `https://www.youtube.com/results?search_query=${encodeURIComponent(fullName)}`;
   return createArticle(
     fullName,
@@ -132,7 +134,10 @@ function makePlaylistArticle(data: SpotifyPlaylistData): ArticleResult {
   return createArticle(
     data.name,
     data.images[0],
-    createMessageText(`<b>${escapeHtml(data.name)}</b>`, `<a href="${url}">Spotify</a>`),
+    createMessageText(
+      `<b>${escapeHtml(data.name)}</b>`,
+      `<a href="${url}">Spotify</a>`,
+    ),
     url,
   );
 }
@@ -152,13 +157,15 @@ export function createHandler(client: SpotifyClient) {
         let article: ArticleResult | null = null;
 
         if (type === 'track') {
-          const data = await getTrackInfoById(spotifyId) as SpotifyTrackData;
+          const data = (await getTrackInfoById(spotifyId)) as SpotifyTrackData;
           article = makeTrackArticle(data);
         } else if (type === 'album') {
-          const data = await getAlbumInfoById(spotifyId) as SpotifyAlbumData;
+          const data = (await getAlbumInfoById(spotifyId)) as SpotifyAlbumData;
           article = makeAlbumArticle(data);
         } else if (type === 'playlist') {
-          const data = await getPlaylistById(spotifyId) as SpotifyPlaylistData;
+          const data = (await getPlaylistById(
+            spotifyId,
+          )) as SpotifyPlaylistData;
           article = makePlaylistArticle(data);
         }
 

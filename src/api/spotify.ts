@@ -1,11 +1,11 @@
-import { makeRequest } from './utils';
+import { makeRequest } from '../utils';
 
 const authOptions = {
   method: 'POST',
   headers: {
     'Content-Type': 'application/x-www-form-urlencoded;charset=UTF-8',
     Authorization: `Basic ${Buffer.from(
-      `${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`
+      `${process.env.CLIENT_ID}:${process.env.CLIENT_SECRET}`,
     ).toString('base64')}`,
   },
   body: 'grant_type=client_credentials',
@@ -16,7 +16,7 @@ let token: string | null = null;
 async function authenticateSpotify() {
   const { access_token } = await makeRequest(
     'https://accounts.spotify.com/api/token',
-    authOptions
+    authOptions,
   );
   return access_token;
 }
