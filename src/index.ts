@@ -5,6 +5,7 @@ import { debounce } from './utils.js';
 import { createHandler as createSpotifyHandler } from './handlers/spotify.js';
 import { handler as twitterHandler } from './handlers/twitter.js';
 import { handler as instagramHandler } from './handlers/instagram.js';
+import { handler as tiktokHandler } from './handlers/tiktok.js';
 
 (async () => {
   const spotifyClient = await spotifyInit();
@@ -19,6 +20,7 @@ import { handler as instagramHandler } from './handlers/instagram.js';
     createSpotifyHandler(spotifyClient),
     twitterHandler,
     instagramHandler,
+    tiktokHandler,
   ];
 
   const debouncedSearch = debounce(
