@@ -4,12 +4,22 @@ import TelegramBot, {
   type InlineQueryResultVideo,
 } from 'node-telegram-bot-api';
 import ytdlp from 'yt-dlp-exec';
-import { getBestVideoUrl, type VideoInfo } from '../utils.js';
+import {
+  createPostCaption,
+  extractFirstHttpUrl,
+  extractUsernameFromUrl,
+  getBestVideoUrl,
+  pickUsername,
+  type VideoInfo,
+} from '../utils.js';
 
 interface InstagramMediaInfo extends VideoInfo {
   ext?: string;
   title?: string;
   thumbnail?: string;
+  webpage_url?: string;
+  uploader_id?: string;
+  channel_id?: string;
   _type?: string;
   entries?: InstagramMediaInfo[];
 }
@@ -51,7 +61,11 @@ export const handler = {
         return;
       }
 
-      const title = info.title || 'Instagram Video';
+      const title = (info.title || 'Instagram Video').slice(0, 256);
+      const postUrl = extractFirstHttpUrl(info.webpage_url, query);
+      const username =
+        extractUsernameFromUrl(query) ??
+        pickUsername(info.uploader_id, info.channel_id);
       await bot.answerInlineQuery(id, [
         {
           type: 'video',
@@ -60,7 +74,7 @@ export const handler = {
           mime_type: 'video/mp4',
           thumbnail_url: info.thumbnail || '',
           title,
-          caption: title,
+          ...createPostCaption(title, postUrl, username),
         } satisfies InlineQueryResultVideo,
       ]);
     } catch (err) {

@@ -1,8 +1,17 @@
 import { randomUUID } from 'crypto';
-import TelegramBot from 'node-telegram-bot-api';
+import TelegramBot, {
+  type InlineQueryResultArticle,
+  type InlineQueryResultVideo,
+} from 'node-telegram-bot-api';
 import ytdlp from 'yt-dlp-exec';
+import {
+  createPostCaption,
+  extractFirstHttpUrl,
+  extractUsernameFromUrl,
+  pickUsername,
+} from '../utils.js';
 
-function errorResult(message: string): TelegramBot.InlineQueryResultArticle {
+function errorResult(message: string): InlineQueryResultArticle {
   return {
     type: 'article',
     id: randomUUID(),
@@ -26,6 +35,10 @@ export const handler = {
         const { play, wmplay, hdplay, cover, title: apiTitle, author } = data.data;
         const videoUrl = hdplay || play || wmplay;
         const thumb = cover || '';
+        const postUrl = extractFirstHttpUrl(query);
+        const username =
+          extractUsernameFromUrl(query) ??
+          pickUsername(author?.unique_id, author?.uniqueId);
 
         if (videoUrl) {
           const title = (apiTitle || author?.nickname || 'TikTok Video').slice(0, 256);
@@ -36,10 +49,10 @@ export const handler = {
               id: randomUUID(),
               video_url: videoUrl,
               mime_type: 'video/mp4',
-              thumb_url: thumb,
+              thumbnail_url: thumb,
               title,
-              caption: title,
-            },
+              ...createPostCaption(title, postUrl, username),
+            } satisfies InlineQueryResultVideo,
           ]);
           return;
         }
@@ -52,7 +65,16 @@ export const handler = {
 
       const uploader = info.uploader || info.channel || '';
       const title = (info.title || 'TikTok Video').slice(0, 256);
-      const webpageUrl = (info.webpage_url || query);
+      const webpageUrl = extractFirstHttpUrl(info.webpage_url, query);
+      const {
+        caption: messageText,
+        caption_entities: entities,
+      } = createPostCaption(
+        title,
+        webpageUrl,
+        extractUsernameFromUrl(query) ??
+          pickUsername(info.uploader_id, info.channel_id),
+      );
 
       await bot.answerInlineQuery(id, [
         {
@@ -61,10 +83,9 @@ export const handler = {
           title,
           description: uploader || 'TikTok Video',
           input_message_content: {
-            message_text: `<b>${title}</b>\n${uploader ? `<i>by ${uploader}</i>\n` : ''}<a href="${webpageUrl}">Watch on TikTok</a>`,
-            parse_mode: 'HTML',
+            message_text: messageText,
+            entities,
           },
-          thumb_url: info.thumbnail || '',
           ...(info.thumbnail ? { thumbnail_url: info.thumbnail } : {}),
         },
       ]);

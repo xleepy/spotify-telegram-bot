@@ -1,7 +1,13 @@
 import { randomUUID } from 'crypto';
 import TelegramBot, { type InlineQueryResultVideo } from 'node-telegram-bot-api';
 import ytdlp from 'yt-dlp-exec';
-import { getBestVideoUrl } from '../utils.js';
+import {
+  createPostCaption,
+  extractFirstHttpUrl,
+  extractUsernameFromUrl,
+  getBestVideoUrl,
+  pickUsername,
+} from '../utils.js';
 
 export const handler = {
   matches: (query: string) =>
@@ -17,7 +23,11 @@ export const handler = {
 
       const videoUrl = getBestVideoUrl(info);
       const thumbnail = info.thumbnail || '';
-      const title = info.title || 'Twitter Video';
+      const title = (info.title || 'Twitter Video').slice(0, 256);
+      const postUrl = extractFirstHttpUrl(info.webpage_url, query);
+      const username =
+        extractUsernameFromUrl(query) ??
+        pickUsername(info.uploader_id, info.channel_id);
 
       if (!videoUrl) {
         console.error('No video URL found for Twitter post:', query);
@@ -32,7 +42,7 @@ export const handler = {
           mime_type: 'video/mp4',
           thumbnail_url: thumbnail,
           title,
-          caption: title,
+          ...createPostCaption(title, postUrl, username),
         } satisfies InlineQueryResultVideo,
       ]);
     } catch (err) {
