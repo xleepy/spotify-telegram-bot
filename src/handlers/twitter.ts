@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
-import TelegramBot from 'node-telegram-bot-api';
+import TelegramBot, { type InlineQueryResultVideo } from 'node-telegram-bot-api';
 import ytdlp from 'yt-dlp-exec';
-import { getBestVideoUrl } from '../utils';
+import { getBestVideoUrl } from '../utils.js';
 
 export const handler = {
   matches: (query: string) =>
@@ -30,10 +30,10 @@ export const handler = {
           id: randomUUID(),
           video_url: videoUrl,
           mime_type: 'video/mp4',
-          thumb_url: thumbnail,
+          thumbnail_url: thumbnail,
           title,
           caption: title,
-        },
+        } satisfies InlineQueryResultVideo,
       ]);
     } catch (err) {
       console.error('Twitter handler error:', err);

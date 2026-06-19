@@ -1,7 +1,10 @@
 import { randomUUID } from 'crypto';
-import TelegramBot from 'node-telegram-bot-api';
+import TelegramBot, {
+  type InlineQueryResultArticle,
+  type InlineQueryResultVideo,
+} from 'node-telegram-bot-api';
 import ytdlp from 'yt-dlp-exec';
-import { getBestVideoUrl, VideoInfo } from '../utils';
+import { getBestVideoUrl, type VideoInfo } from '../utils.js';
 
 interface InstagramMediaInfo extends VideoInfo {
   ext?: string;
@@ -11,7 +14,7 @@ interface InstagramMediaInfo extends VideoInfo {
   entries?: InstagramMediaInfo[];
 }
 
-function errorResult(message: string): TelegramBot.InlineQueryResultArticle {
+function errorResult(message: string): InlineQueryResultArticle {
   return {
     type: 'article',
     id: randomUUID(),
@@ -55,10 +58,10 @@ export const handler = {
           id: randomUUID(),
           video_url: videoUrl,
           mime_type: 'video/mp4',
-          thumb_url: info.thumbnail || '',
+          thumbnail_url: info.thumbnail || '',
           title,
           caption: title,
-        },
+        } satisfies InlineQueryResultVideo,
       ]);
     } catch (err) {
       console.error('Instagram handler error:', err);

@@ -1,11 +1,10 @@
-import dotenv from 'dotenv';
-dotenv.config();
+import 'dotenv/config';
 import TelegramBot from 'node-telegram-bot-api';
-import spotifyInit from './api/spotify';
-import { debounce } from './utils';
-import { createHandler as createSpotifyHandler } from './handlers/spotify';
-import { handler as twitterHandler } from './handlers/twitter';
-import { handler as instagramHandler } from './handlers/instagram';
+import spotifyInit from './api/spotify.js';
+import { debounce } from './utils.js';
+import { createHandler as createSpotifyHandler } from './handlers/spotify.js';
+import { handler as twitterHandler } from './handlers/twitter.js';
+import { handler as instagramHandler } from './handlers/instagram.js';
 
 (async () => {
   const spotifyClient = await spotifyInit();

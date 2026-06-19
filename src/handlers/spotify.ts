@@ -1,6 +1,10 @@
 import { randomUUID } from 'crypto';
-import TelegramBot from 'node-telegram-bot-api';
-import spotifyInit from '../api/spotify';
+import TelegramBot, {
+  type InlineQueryResultArticle,
+  type InputTextMessageContent,
+  type LinkPreviewOptions,
+} from 'node-telegram-bot-api';
+import spotifyInit from '../api/spotify.js';
 
 type SpotifyClient = Awaited<ReturnType<typeof spotifyInit>>;
 
@@ -35,15 +39,9 @@ interface SpotifyPlaylistData {
   external_urls: { spotify: string };
 }
 
-// link_preview_options was added in Bot API 7.0 and is missing from @types
-type ArticleResult = TelegramBot.InlineQueryResultArticle & {
-  input_message_content: TelegramBot.InputTextMessageContent & {
-    link_preview_options?: {
-      is_disabled?: boolean;
-      url?: string;
-      prefer_large_media?: boolean;
-      show_above_text?: boolean;
-    };
+type ArticleResult = InlineQueryResultArticle & {
+  input_message_content: InputTextMessageContent & {
+    link_preview_options?: LinkPreviewOptions;
   };
 };
 
@@ -77,9 +75,9 @@ function createArticle(
     type: 'article',
     title: name,
     description: name,
-    thumb_url: thumb?.url,
-    thumb_width: thumb?.width,
-    thumb_height: thumb?.height,
+    thumbnail_url: thumb?.url,
+    thumbnail_width: thumb?.width,
+    thumbnail_height: thumb?.height,
     input_message_content: {
       message_text: messageText,
       parse_mode: 'HTML',

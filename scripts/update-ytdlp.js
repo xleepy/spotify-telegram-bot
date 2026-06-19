@@ -1,5 +1,5 @@
-const { execFileSync } = require('child_process');
-const path = require('path');
+import { execFileSync } from 'node:child_process';
+import path from 'node:path';
 
 const bin = path.join(
   'node_modules',

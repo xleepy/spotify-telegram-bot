@@ -1,4 +1,4 @@
-import { makeRequest } from '../utils';
+import { makeRequest } from '../utils.js';
 
 const authOptions = {
   method: 'POST',
