@@ -40,10 +40,12 @@ export const handler = {
 
   handle: async (query: string, id: string, bot: TelegramBot) => {
     try {
+      const cookies = process.env.INSTAGRAM_COOKIES_FILE;
       const info = (await ytdlp(query, {
         dumpSingleJson: true,
         noWarnings: true,
         format: 'best[ext=mp4]/bestvideo[ext=mp4]+bestaudio/best',
+        ...(cookies ? { cookies } : {}),
       })) as unknown as InstagramMediaInfo;
 
       if (info._type === 'playlist') {
@@ -79,6 +81,9 @@ export const handler = {
       ]);
     } catch (err) {
       console.error('Instagram handler error:', err);
+      await bot.answerInlineQuery(id, [
+        errorResult('Cannot fetch this Instagram post.'),
+      ]);
     }
   },
 };
