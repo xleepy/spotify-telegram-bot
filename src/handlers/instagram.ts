@@ -40,13 +40,16 @@ export const handler = {
 
   handle: async (query: string, id: string, bot: TelegramBot) => {
     try {
-      const cookies = process.env.INSTAGRAM_COOKIES_FILE;
-      const info = (await ytdlp(query, {
+      const options = {
         dumpSingleJson: true,
         noWarnings: true,
         format: 'best[ext=mp4]/bestvideo[ext=mp4]+bestaudio/best',
-        ...(cookies ? { cookies } : {}),
-      })) as unknown as InstagramMediaInfo;
+        ignoreConfig: true,
+        noCookies: true,
+        noCookiesFromBrowser: true,
+        impersonate: 'chrome',
+      }
+      const info = (await ytdlp(query, options)) as unknown as InstagramMediaInfo
 
       if (info._type === 'playlist') {
         await bot.answerInlineQuery(id, [
