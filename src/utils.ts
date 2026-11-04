@@ -61,16 +61,16 @@ export async function makeRequest(url: string, opts: RequestInit) {
 }
 
 interface VideoFormat {
-  url: string;
-  vcodec: string;
-  acodec: string;
-  ext: string;
-  height: number;
+  url?: string
+  protocol?: string
+  vcodec?: string
+  acodec?: string
+  ext?: string
+  height?: number
 }
 
-export interface VideoInfo {
-  url?: string;
-  formats?: VideoFormat[];
+export interface VideoInfo extends VideoFormat {
+  formats?: VideoFormat[]
 }
 
 function normalizeWhitespace(text: string): string {
@@ -216,41 +216,33 @@ export function createPostCaption(
   };
 }
 
-export function getBestVideoUrl(info: VideoInfo): string | null {
-  if (info.url) {
-    return info.url;
+function isDirectMp4(format: VideoFormat): format is VideoFormat & { url: string } {
+  if (
+    !format.url ||
+    (format.protocol !== 'http' && format.protocol !== 'https') ||
+    format.ext !== 'mp4' ||
+    format.vcodec === 'none' ||
+    format.acodec === 'none'
+  ) {
+    return false
   }
-  const formats = info.formats ?? [];
-  const combined = formats.filter(
-    (f) => f.url && f.vcodec !== 'none' && f.acodec !== 'none',
-  );
-  if (combined.length > 0) {
-    combined.sort((a, b) => {
-      const aIsMp4 = a.ext === 'mp4' ? 1 : 0;
-      const bIsMp4 = b.ext === 'mp4' ? 1 : 0;
-      if (aIsMp4 !== bIsMp4) return bIsMp4 - aIsMp4;
-      return b.height - a.height;
-    });
-    return combined[0].url;
+  try {
+    const url = new URL(format.url)
+    return (
+      (url.protocol === 'http:' || url.protocol === 'https:') &&
+      !/\.(?:m3u8?|mpd)$/i.test(url.pathname)
+    )
+  } catch {
+    return false
   }
-  return formats.find((f) => f.url && f.vcodec !== 'none')?.url ?? null;
 }
 
-// https://github.com/you-dont-need/You-Dont-Need-Lodash-Underscore?tab=readme-ov-file#_debounce
-export function debounce<T extends (...args: any) => void>(
-  func: T,
-  wait: number,
-  immediate?: true
-) {
-  let timeout: NodeJS.Timeout | null;
-  return function (this: ThisParameterType<T>, ...args: any[]) {
-    if (timeout) {
-      clearTimeout(timeout);
-    }
-    if (immediate && !timeout) func.apply(this, args);
-    timeout = setTimeout(() => {
-      timeout = null;
-      if (!immediate) func.apply(this, args);
-    }, wait);
-  };
+export function getBestVideoUrl(info: VideoInfo): string | null {
+  if (isDirectMp4(info)) {
+    return info.url
+  }
+
+  const formats = (info.formats ?? []).filter(isDirectMp4)
+  formats.sort((a, b) => (b.height ?? 0) - (a.height ?? 0))
+  return formats[0]?.url ?? null
 }

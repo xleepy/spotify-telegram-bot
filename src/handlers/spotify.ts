@@ -46,11 +46,24 @@ type ArticleResult = InlineQueryResultArticle & {
 };
 
 function parseQuery(query: string): { id: string; type: string } | null {
-  const urlArr = query.split('/');
-  if (urlArr.length === 0) return null;
-  const type = urlArr[urlArr.length - 2];
-  const [id] = urlArr[urlArr.length - 1].split('?');
-  return { id, type };
+  try {
+    const url = new URL(query.trim())
+    if (
+      (url.protocol !== 'https:' && url.protocol !== 'http:') ||
+      url.hostname !== 'open.spotify.com'
+    ) {
+      return null
+    }
+
+    const match = url.pathname.match(
+      /^\/(?:intl-[a-z]{2}\/)?(?:embed\/)?(track|album|playlist)\/([A-Za-z0-9]{22})\/?$/,
+    )
+    if (!match) return null
+    const [, type, id] = match
+    return { id, type }
+  } catch {
+    return null
+  }
 }
 
 function escapeHtml(text: string): string {
@@ -144,7 +157,7 @@ export function createHandler(client: SpotifyClient) {
   const { getTrackInfoById, getAlbumInfoById, getPlaylistById } = client;
 
   return {
-    matches: (query: string) => query.includes('open.spotify.com'),
+    matches: (query: string) => parseQuery(query) !== null,
 
     handle: async (query: string, id: string, bot: TelegramBot) => {
       const parsed = parseQuery(query);
