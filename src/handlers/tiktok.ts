@@ -5,7 +5,13 @@ import type {
   InlineQueryResultVideo,
 } from 'node-telegram-bot-api'
 import { extractMedia, parseMediaUrl } from '../media.js'
-import { createPostCaption, extractUsernameFromUrl, pickUsername } from '../utils.js'
+import {
+  createPostCaption,
+  extractFirstHttpUrl,
+  extractUsernameFromUrl,
+  getBestVideoUrl,
+  pickUsername,
+} from '../utils.js'
 
 const TIKWM_ORIGIN = 'https://www.tikwm.com'
 const TIKWM_TIMEOUT_MS = 5_000
@@ -79,15 +85,29 @@ async function getTikwmResult(url: URL): Promise<InlineQueryResultVideo | undefi
   }
 }
 
-async function getFallbackResult(url: URL): Promise<InlineQueryResultArticle> {
+async function getFallbackResult(url: URL): Promise<InlineQueryResultArticle | InlineQueryResultVideo> {
   try {
     const info = await extractMedia('tiktok', url)
     const title = (info.title || 'TikTok Video').slice(0, 256)
-    const { caption, caption_entities } = createPostCaption(
+    const postCaption = createPostCaption(
       title,
       url.href,
       extractUsernameFromUrl(url.href) ?? pickUsername(info.uploader_id, info.channel_id),
     )
+    const videoUrl = getBestVideoUrl(info)
+    const thumbnailUrl = extractFirstHttpUrl(info.thumbnail)
+
+    if (videoUrl && thumbnailUrl) {
+      return {
+        type: 'video',
+        id: randomUUID(),
+        video_url: videoUrl,
+        mime_type: 'video/mp4',
+        thumbnail_url: thumbnailUrl,
+        title,
+        ...postCaption,
+      }
+    }
 
     return {
       type: 'article',
@@ -95,10 +115,10 @@ async function getFallbackResult(url: URL): Promise<InlineQueryResultArticle> {
       title,
       description: info.uploader || info.channel || 'TikTok Video',
       input_message_content: {
-        message_text: caption,
-        entities: caption_entities,
+        message_text: postCaption.caption,
+        entities: postCaption.caption_entities,
       },
-      ...(info.thumbnail ? { thumbnail_url: info.thumbnail } : {}),
+      ...(thumbnailUrl ? { thumbnail_url: thumbnailUrl } : {}),
     }
   } catch (err) {
     console.error('TikTok extraction failed:', err)
